@@ -1,0 +1,196 @@
+diff -ruN a/src/dns_client/wake_event.c b/src/dns_client/wake_event.c
+--- a/src/dns_client/wake_event.c	2026-07-31 21:03:21.000000000 +0800
++++ b/src/dns_client/wake_event.c	2026-10-31 08:33:13.237605785 +0800
+@@ -19,7 +19,7 @@
+ #include "wake_event.h"
+ 
+ #include <sys/epoll.h>
+-#include <sys/eventfd.h>
++#include "eventfd_compat.h"
+ 
+ void _dns_client_close_wakeup_event(void)
+ {
+diff -ruN a/src/dns_server/connection.c b/src/dns_server/connection.c
+--- a/src/dns_server/connection.c	2026-07-31 21:03:21.000000000 +0800
++++ b/src/dns_server/connection.c	2026-10-31 08:33:13.234972952 +0800
+@@ -24,7 +24,7 @@
+ 
+ #include <openssl/ssl.h>
+ #include <sys/epoll.h>
+-#include <sys/eventfd.h>
++#include "eventfd_compat.h"
+ 
+ int _dns_server_epoll_ctl(struct dns_server_conn_head *head, int op, uint32_t events)
+ {
+diff -ruN a/src/dns_server/dns_server.c b/src/dns_server/dns_server.c
+--- a/src/dns_server/dns_server.c	2026-07-31 21:03:21.000000000 +0800
++++ b/src/dns_server/dns_server.c	2026-10-31 08:33:13.231972907 +0800
+@@ -65,7 +65,7 @@
+ #include <signal.h>
+ #include <string.h>
+ #include <sys/epoll.h>
+-#include <sys/eventfd.h>
++#include "eventfd_compat.h"
+ 
+ static int is_server_init;
+ struct dns_server server;
+diff -ruN a/src/dns_server/local_addr.c b/src/dns_server/local_addr.c
+--- a/src/dns_server/local_addr.c	2026-07-31 21:03:21.000000000 +0800
++++ b/src/dns_server/local_addr.c	2026-10-31 08:33:13.229610134 +0800
+@@ -24,7 +24,7 @@
+ #include <linux/rtnetlink.h>
+ #include <string.h>
+ #include <sys/epoll.h>
+-#include <sys/eventfd.h>
++#include "eventfd_compat.h"
+ 
+ static void _dns_server_local_addr_cache_add(unsigned char *netaddr, int netaddr_len, int prefix_len)
+ {
+diff -ruN a/src/dns_server/neighbor.c b/src/dns_server/neighbor.c
+--- a/src/dns_server/neighbor.c	2026-07-31 21:03:21.000000000 +0800
++++ b/src/dns_server/neighbor.c	2026-10-31 08:33:13.226972833 +0800
+@@ -26,7 +26,7 @@
+ #include <linux/netlink.h>
+ #include <linux/rtnetlink.h>
+ #include <sys/epoll.h>
+-#include <sys/eventfd.h>
++#include "eventfd_compat.h"
+ 
+ void dns_server_enable_update_neighbor_cache(int enable)
+ {
+diff -ruN a/src/fast_ping/fast_ping.c b/src/fast_ping/fast_ping.c
+--- a/src/fast_ping/fast_ping.c	2026-07-31 21:03:21.000000000 +0800
++++ b/src/fast_ping/fast_ping.c	2026-10-31 08:33:13.224598624 +0800
+@@ -39,7 +39,7 @@
+ #include <pthread.h>
+ #include <string.h>
+ #include <sys/epoll.h>
+-#include <sys/eventfd.h>
++#include "eventfd_compat.h"
+ #include <sys/resource.h>
+ #include <sys/socket.h>
+ #include <sys/timerfd.h>
+diff -ruN a/src/fast_ping/notify_event.c b/src/fast_ping/notify_event.c
+--- a/src/fast_ping/notify_event.c	2026-07-31 21:03:21.000000000 +0800
++++ b/src/fast_ping/notify_event.c	2026-10-31 08:33:13.222528199 +0800
+@@ -25,7 +25,7 @@
+ #include <pthread.h>
+ #include <string.h>
+ #include <sys/epoll.h>
+-#include <sys/eventfd.h>
++#include "eventfd_compat.h"
+ 
+ static void _fast_ping_release_notify_event(struct fast_ping_notify_event *ping_notify_event)
+ {
+diff -ruN a/src/fast_ping/wakeup_event.c b/src/fast_ping/wakeup_event.c
+--- a/src/fast_ping/wakeup_event.c	2026-07-31 21:03:21.000000000 +0800
++++ b/src/fast_ping/wakeup_event.c	2026-10-31 08:33:13.220007623 +0800
+@@ -22,7 +22,7 @@
+ #include <errno.h>
+ #include <string.h>
+ #include <sys/epoll.h>
+-#include <sys/eventfd.h>
++#include "eventfd_compat.h"
+ 
+ void _fast_ping_wakeup_thread(void)
+ {
+diff -ruN a/src/include/eventfd_compat.h b/src/include/eventfd_compat.h
+--- a/src/include/eventfd_compat.h	1970-01-01 08:00:00.000000000 +0800
++++ b/src/include/eventfd_compat.h	2026-10-31 08:33:13.217775428 +0800
+@@ -0,0 +1,96 @@
++/*************************************************************************
++ *
++ * Copyright (C) 2026 imzf.
++ *
++ * This file is part of the smartdns eventfd compatibility patch.
++ *
++ * SPDX-License-Identifier: GPL-3.0-or-later
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++/*
++ * eventfd_compat.h - eventfd replacement for kernels without CONFIG_EVENTFD
++ *
++ * Some vendor kernels (e.g. Qualcomm IPQ50xx OpenWrt builds) are compiled
++ * without CONFIG_EVENTFD, so eventfd() returns ENOSYS.  SmartDNS only uses
++ * eventfd as an epoll wakeup handle: a thread writes 8 bytes and the epoll
++ * loop wakes up, reads them and ignores the value.
++ *
++ * A connected UDP socket on loopback gives exactly the same single-fd
++ * read/write semantics, so every existing call site keeps working unchanged.
++ *
++ * Limitations: initval and EFD_SEMAPHORE are not supported; the returned
++ * descriptor is always non-blocking and close-on-exec.  All current call
++ * sites use eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK), so this is sufficient.
++ */
++#ifndef SMARTDNS_EVENTFD_COMPAT_H
++#define SMARTDNS_EVENTFD_COMPAT_H
++
++#include <string.h>
++#include <unistd.h>
++#include <fcntl.h>
++
++/* values from <sys/eventfd.h>; kept here so we do not need that header */
++#ifndef EFD_CLOEXEC
++#define EFD_CLOEXEC O_CLOEXEC
++#endif
++#ifndef EFD_NONBLOCK
++#define EFD_NONBLOCK O_NONBLOCK
++#endif
++#include <sys/types.h>
++#include <sys/socket.h>
++#include <netinet/in.h>
++#include <arpa/inet.h>
++
++static inline int smartdns_eventfd(unsigned int initval, int flags)
++{
++	int fd;
++	struct sockaddr_in addr;
++	socklen_t addrlen;
++
++	(void)initval;
++	(void)flags; /* call sites pass EFD_CLOEXEC | EFD_NONBLOCK */
++
++	fd = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
++	if (fd < 0) {
++		return -1;
++	}
++
++	memset(&addr, 0, sizeof(addr));
++	addr.sin_family = AF_INET;
++	addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
++	addr.sin_port = 0;
++
++	if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
++		close(fd);
++		return -1;
++	}
++
++	addrlen = sizeof(addr);
++	if (getsockname(fd, (struct sockaddr *)&addr, &addrlen) < 0) {
++		close(fd);
++		return -1;
++	}
++
++	if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
++		close(fd);
++		return -1;
++	}
++
++	return fd;
++}
++
++#define eventfd smartdns_eventfd
++
++#endif /* SMARTDNS_EVENTFD_COMPAT_H */

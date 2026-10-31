@@ -1,0 +1,54 @@
+# SmartDNS 配置 - IPv6 优化版 v2
+# 国内域名 -> 阿里/腾讯 IPv6 DNS（测速优选）
+# 其它域名 -> Cloudflare DoT over IPv6（不测速，优先低延迟）
+
+server-name OpenWrt
+
+# 双栈监听
+bind [::]:6053
+
+# 缓存：加大 + 持久化到数据盘，重启不丢
+cache-size 16384
+cache-persist yes
+cache-file /mnt/data/smartdns/smartdns.cache
+cache-checkpoint-time 600
+
+prefetch-domain yes
+serve-expired yes
+serve-expired-ttl 259200
+serve-expired-reply-ttl 3
+serve-expired-prefetch-time 21600
+
+# 双栈 IP 优选
+dualstack-ip-selection yes
+dualstack-ip-selection-threshold 30
+
+# 默认组（国外）：不做 TCP 测速，避免连境外 IP 拖慢首次解析
+speed-check-mode none
+
+# 国内组：TCP 测速，CDN 多节点优选
+group-begin cn
+speed-check-mode tcp:443,tcp:80
+group-end
+
+log-level warn
+log-file /tmp/smartdns.log
+log-size 128k
+log-num 1
+
+# ===== 国外：Cloudflare DoT，IPv6 优先 =====
+server-tls 2606:4700:4700::1111 -no-check-certificate
+server-tls 2606:4700:4700::1001 -no-check-certificate
+server-tls 1.1.1.1 -no-check-certificate
+server-tls 1.0.0.1 -no-check-certificate
+
+# ===== 国内：IPv6 DNS 优先，IPv4 备用 =====
+server 2400:3200::1 -group cn -exclude-default-group
+server 2400:3200:baba::1 -group cn -exclude-default-group
+server 2402:4e00:: -group cn -exclude-default-group
+server 223.5.5.5 -group cn -exclude-default-group
+server 119.29.29.29 -group cn -exclude-default-group
+
+# ===== 国内域名分流 =====
+domain-set -name china -file /mnt/data/smartdns/china-domain.txt -type list
+nameserver /domain-set:china/cn

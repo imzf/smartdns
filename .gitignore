@@ -1,0 +1,13 @@
+# 构建目录与产物
+.work/
+out/
+smartdns-src/
+*.o
+*.a
+smartdns
+
+# 本地备份的上游二进制（不随仓库发布）
+smartdns.release38.bak
+
+# 临时日志
+*.log

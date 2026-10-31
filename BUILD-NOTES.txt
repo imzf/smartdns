@@ -1,0 +1,37 @@
+SmartDNS 1.2026.08.05 (Release48.4) 自定义构建
+================================================
+原因：本机内核 4.4.60 未编译 CONFIG_EVENTFD，官方新版启动即失败
+      (eventfd2 返回 ENOSYS)。
+
+改动（源码 src/ 下）：
+  1. 新增 src/include/eventfd_compat.h
+     用 loopback UDP socket 实现单 fd 的 eventfd 语义，
+     保持 write/read/epoll 行为不变。
+  2. 以下 8 个文件的
+     #include <sys/eventfd.h>
+     改为
+     #include "eventfd_compat.h"
+       src/fast_ping/wakeup_event.c
+       src/fast_ping/notify_event.c
+       src/fast_ping/fast_ping.c
+       src/dns_server/dns_server.c
+       src/dns_server/neighbor.c
+       src/dns_server/local_addr.c
+       src/dns_server/connection.c
+       src/dns_client/wake_event.c
+
+编译：
+  toolchain: musl.cc arm-linux-musleabihf-cross (gcc 11.2.1)
+  openssl:   1.1.1w, ./Configure linux-armv4 no-shared no-tests no-async
+  smartdns:  make CC=arm-linux-musleabihf-gcc STATIC=yes \
+               EXTRA_CFLAGS="-I<openssl>/include" \
+               EXTRA_LDFLAGS="-L<openssl>/lib"
+  产物 strip 后约 2.7MB，static-pie。
+
+旧版备份：/usr/sbin/smartdns.release38.bak
+
+许可证与合规：
+  本构建按 GPL-3.0-or-later 发布，全文见 LICENSE；
+  上游归属、修改声明与对应源码获取方式见 NOTICE；
+  使用边界与免责声明见 DISCLAIMER.md。
+  注意：OpenSSL 1.1.1w 已于 2023-09-11 EOL，建议升级到 3.x。

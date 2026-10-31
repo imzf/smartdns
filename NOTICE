@@ -1,0 +1,80 @@
+SmartDNS eventfd 兼容补丁 — 版权与合规声明
+==========================================
+
+本仓库是 SmartDNS 的衍生作品归档，包含补丁、构建脚本和配置，不包含完整的
+上游源码副本。
+
+上游项目
+--------
+SmartDNS
+https://github.com/pymumu/smartdns
+Copyright (C) 2018-2025 Ruilin Peng (Nick) <pymumu@gmail.com>
+License: GNU General Public License v3.0 or later (GPL-3.0-or-later)
+许可证全文见仓库根目录的 LICENSE。
+
+本仓库的修改
+------------
+修改者: imzf
+修改日期: 2026-10-31
+
+新增文件:
+- src/include/eventfd_compat.h
+  用「connect 到自己的 loopback UDP socket」实现 eventfd 的单 fd 读写
+  语义，用于内核未编译 CONFIG_EVENTFD 的设备。
+
+修改文件（仅替换 include）:
+- src/fast_ping/wakeup_event.c
+- src/fast_ping/notify_event.c
+- src/fast_ping/fast_ping.c
+- src/dns_server/dns_server.c
+- src/dns_server/neighbor.c
+- src/dns_server/local_addr.c
+- src/dns_server/connection.c
+- src/dns_client/wake_event.c
+
+其他修改:
+- build.sh 将构建版本号标记为 1.2026.08.05-custom，并增加下载校验。
+- README.md 增加许可证、安全边界和免责声明说明。
+- ipv6-check.sh / ipv6-watchdog.sh 的运维健壮性修正。
+
+上述新增与修改部分按 GPL-3.0-or-later 发布。
+
+对应源码与构建
+--------------
+补丁基于 SmartDNS Release48.4：
+https://github.com/pymumu/smartdns/archive/refs/tags/Release48.4.tar.gz
+
+构建方法见 README 的「快速构建」。将本仓库的 smartdns-eventfd.patch 应用到
+上述源码，即可得到与本补丁对应的完整源码。
+
+本仓库不发布二进制；build.sh 只在本地生成 out/smartdns。如你自行构建并对
+外分发该二进制，请自行按 GPLv3 §6 提供对应源码，并遵守 OpenSSL 等第三方
+组件的许可。
+
+第三方组件
+----------
+- OpenSSL 1.1.1w（build.sh 静态链接使用）：OpenSSL License + Original
+  SSLeay License，全文见 LICENSES/OpenSSL.txt。
+
+  This product includes software developed by the OpenSSL Project for use in
+  the OpenSSL Toolkit (https://www.openssl.org/).
+
+  This product includes cryptographic software written by Eric Young
+  (eay@cryptsoft.com).  This product includes software written by Tim Hudson
+  (tjh@cryptsoft.com).
+
+  注意：OpenSSL 1.1.1 系列已于 2023-09-11 结束支持（EOL），不再获得安全
+  修复；FSF 认为其许可证与 GPL 不兼容。建议升级到 OpenSSL 3.x
+  （Apache-2.0）。
+
+- musl libc（静态链接）：MIT License。
+  Copyright © 2005-2020 Rich Felker, et al.
+  全文见 https://git.musl-libc.org/cgit/musl/tree/COPYRIGHT
+
+- GCC runtime（libgcc）：GPLv3 + GCC Runtime Library Exception。按该例外，
+  编译产物不因链接 libgcc 而受 GPL 约束。
+
+无担保
+------
+本仓库按「现状」提供，不附带任何明示或默示担保。完整使用条款见
+DISCLAIMER.md。
